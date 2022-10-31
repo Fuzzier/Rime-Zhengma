@@ -1,0 +1,105 @@
+# Rime schema
+# encoding: utf-8
+
+schema:
+  schema_id: simp_pinyin
+  name: 簡化拼音
+  version: "2022-10-30"
+  author:
+    - 唐偉
+  description:
+    用于簡化字輸入法反查編碼，12041漢字按字頻排序：lingua.mtsu.edu/chinese-computing/statistics
+  dependencies:
+    - zhengma
+
+switches:
+  - name: ascii_mode
+    states: [ 中文, 西文 ]
+
+  - name: full_shape
+    states: [ 半角, 全角 ]
+
+  - name: simplification
+    states: [ 漢字, 汉字 ]
+
+  - name: ascii_punct
+    states: [ 句讀, 符號 ]
+
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - punct_segmentor
+    - fallback_segmentor
+  translators:
+    - punct_translator
+    - reverse_lookup_translator
+    - script_translator
+  filters:
+    - simplifier
+    - uniquifier
+
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " '"
+  algebra:
+    - erase/^xx$/
+    - abbrev/^([a-z]).+$/$1/
+    - abbrev/^([zcs]h).+$/$1/
+    - derive/^([nl])ve$/$1ue/
+    - derive/^([jqxy])u/$1v/
+    - derive/un$/uen/
+    - derive/ui$/uei/
+    - derive/iu$/iou/
+    - derive/([aeiou])ng$/$1gn/
+    - derive/([dtngkhrzcs])o(u|ng)$/$1o/
+    - derive/ong$/on/
+    - derive/ao$/oa/
+    - derive/([iu])a(o|ng?)$/a$1$2/
+
+translator:
+  dictionary: simp_pinyin
+  preedit_format:
+    - "xform/([nl])v/$1ü/"
+    - "xform/([nl])ue/$1üe/"
+    - "xform/([jqxy])v/$1u/"
+  enable_charset_filter : false # 字符集過濾
+  enable_encoder        : false # 自動造詞
+  enable_commit_histroy : false # 已上屏詞自動成詞
+  max_phrase_length     : 0     # 最大自動成詞詞長
+  enable_completion     : true  # 逐漸提示
+  enable_sentence       : false # 自動造句
+  enable_user_dict      : true  # 記錄用戶詞頻、用戶詞
+
+reverse_lookup:
+  dictionary: zhengma
+  enable_completion: true
+  prefix: "`"
+  suffix: "'"
+  tips: 〔鄭碼〕
+  comment_format:
+    - "xform/([nl])v/$1ü/"
+    - "xform/([nl])ue/$1üe/"
+    - "xform/([jqxy])v/$1u/"
+
+punctuator:
+  import_preset: symbols
+
+key_binder:
+  import_preset: default
+
+recognizer:
+  import_preset: default
+  patterns:
+    punct: '^/([0-9]0?|[A-Za-z]+)$'
+    reverse_lookup: "`[a-z]*'?$"

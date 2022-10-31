@@ -1,0 +1,184 @@
+# Rime schema
+# encoding: utf-8
+# see [RimeWithSchemata](https://github.com/rime/home/wiki/RimeWithSchemata)
+# see [Schema.yaml 詳解](https://github.com/LEOYoon-Tsaw/Rime_collections/blob/master/Rime_description.md)
+
+schema:
+  name: "鄭碼"
+  schema_id: zhengma
+  author:
+    - "發明人 鄭易里先生、鄭珑女士"
+  description:
+    鄭码輸入法
+    碼表由唐偉整理
+  version: "2022-10-30"
+
+switches:
+  - name: ascii_mode
+
+  - name: full_shape
+    states: ["半角", "全角"]
+
+  - name: extended_charset
+    states: ["通用", "增廣"]
+
+  - name: simplification
+    states: ["漢字", "汉字"]
+
+  - name: ascii_punct
+    states: ["句讀", "符號"]
+
+switcher:
+  save_options:
+    - ascii_mode
+    - full_shape
+    - extended_charset
+    - simplification
+    - ascii_punct
+
+engine:
+  processors: # 這批組件處理各類按鍵消息，優先級依照列表順序排定
+    - ascii_composer # 處理西文模式及中西文切換
+    - recognizer     # 與 matcher 搭配，處理符合特定規則的輸入碼，如網址、反查等
+    - key_binder     # 在特定條件下將按鍵綁定到其他按鍵，如重定義逗號、句號爲候選翻頁、開關快捷鍵等
+    - speller        # 拼寫處理器，接受字符按鍵，編輯輸入碼
+    - punctuator     # 句讀處理器，將單個字符按鍵直接映射爲標點符號或文字
+    - selector       # 選字處理器，處理數字選字鍵、上、下候選定位、換頁鍵
+    - navigator      # 處理輸入欄內的光標移動鍵
+    - express_editor # 編輯器，處理空格、回車上屏、回退鍵等
+  segmentors: # 這批組件識別不同內容類型，將輸入碼分段
+    - ascii_segmentor    # 標識西文段落〔譬如在西文模式下〕字母直接上屛
+    - matcher            # 配合recognizer標識符合特定規則的段落，如網址、反查等，加上特定tag
+    - abc_segmentor      # 標識常規的文字段落，加上abc這個tag
+    - punct_segmentor    # 標識句讀段落〔鍵入標點符號用〕加上punct這個tag
+    - fallback_segmentor # 標識其他未標識段落
+  translators: # 這批組件翻譯特定類型的編碼段爲一組候選文字
+    - echo_translator           # 沒有其他候選字時，回顯輸入碼〔輸入碼可以Shift+Enter上屛〕
+    - punct_translator          # 配合punct_segmentor轉換標點符號
+    - reverse_lookup_translator # 反查翻譯器，用另一種編碼方案查碼
+    - table_translator          # 碼表翻譯器，用於倉頡、五筆等基於碼表的輸入方案
+  filters: # 這批組件過濾翻譯的結果
+    - simplifier         # 繁簡轉換
+    - uniquifier         # 過濾重複的候選字，有可能來自simplifier繁簡轉換器
+    - single_char_filter # 單字過濾器，如加載此組件，則屛敝詞典中的詞組〔僅table_translator有效〕
+
+editor:
+  bindings:
+    Shift_R : commit_raw_input # 英文上屏，結合ascii_composer，切換到英文
+
+ascii_composer:
+  good_old_caps_lock: true
+  switch_key:
+    Caps_Lock: clear
+    Control_L: noop
+    Control_R: noop
+    Eisu_toggle: clear
+    Shift_L: inline_ascii
+    Shift_R: commit_text
+
+# abc_segmentor:
+#   extra_tags:
+#     - reverse_lookup  # 與反查碼混打
+
+key_binder:
+  import_preset: default
+  bindings:
+    # 回車清屏
+    - when   : composing
+      accept : Return
+      send   : Escape
+
+    # ;選擇第2重碼
+    - when   : has_menu
+      accept : semicolon
+      send   : 2
+
+    # '選擇第3重碼
+    - when   : has_menu
+      accept : apostrophe
+      send   : 3
+
+    # 繁简切換
+    - when   : always
+      accept : Control+j
+      toggle : simplification
+
+    # 全角半角切換
+    - when   : always
+      accept : Shift+space
+      toggle : full_shape
+
+    # 字符集切換
+    - when   : always
+      accept : Control+m
+      toggle : extended_charset
+
+    # 標點符號切換
+    - when   : always
+      accept : Control+period
+      toggle : ascii_punct
+
+speller:
+  alphabet: zyxwvutsrpqonmlkjihgfedcba
+  max_code_length : 4    # 頂字上屏碼長
+  use_space       : true # 空格上屏
+  auto_select     : true # 自動上屛
+
+punctuator:
+  import_preset: symbols
+  half_shape:
+    "`" : "`"
+    "~" : "~"
+    "\\" : "、"
+    "[" : "["
+    "]" : "]"
+
+translator:
+  dictionary: zhengma
+  enable_charset_filter : true  # 字符集過濾
+  enable_encoder        : false # 自動造詞
+  enable_commit_histroy : false # 已上屏詞自動成詞
+  max_phrase_length     : 0     # 最大自動成詞詞長
+  enable_completion     : true  # 逐漸提示
+  strict_spelling       : true  # 嚴格匹配
+  enable_sentence       : false # 自動造句
+  enable_user_dict      : false # 記錄用戶詞頻、用戶詞
+
+simplifier:
+  opencc_config: s2t.json
+  option_name: simplification
+  tags: # 設定轉換範圍
+    - abc     # abc對應abc_segmentor
+  tips: all   # 簡化字模式下提示對應的傳統漢字
+              # 设置爲char则爲单字提示
+              # 设置爲all则爲字词提示
+              # 這個輸出將覆蓋編碼反查的輸出
+  excluded_types:
+    - reverse_lookup
+
+recognizer:
+  import_preset: default
+  patterns: # 配合segmentor的prefix和suffix完成段落劃分、tag分配
+    reverse_lookup: "`[a-z]*'?$"
+    uppercase: "[A-Z][-_+.'0-9A-Za-z]*$"
+    punct: '^/([0-9]0?|[A-Za-z]+)$'
+    email: "^[A-Za-z][-_.0-9A-Za-z]*@.*$"
+    url: "^(www[.]|https?:|ftp[.:]|mailto:|file:).*$|^[a-z]+[.].+$"
+
+reverse_lookup:
+  prefix: "`"  # 配合recognizer，以`开启编码反查
+  suffix: "'"  # 配合recognizer，以'结束编码反查
+  dictionary: simp_pinyin
+  preedit_format:
+    - "xform/([nl])v/$1ü/"
+    - "xform/([nl])ue/$1üe/"
+    - "xform/([jqxy])v/$1u/"
+  enable_completion: true
+  tips: "〔拼音〕"
+
+menu:
+  page_size: 5 # 選單每䈎顯示個數
+
+style:
+  horizontal: true      # 橫排／直排
+  inline_preedit: false # 輸入碼內嵌
